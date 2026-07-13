@@ -1,10 +1,7 @@
 streamlit==1.46.0
-streamlit-webrtc==0.63.11
-opencv-python-headless==4.10.0.84
-mediapipe==0.10.14
-av
-numpy
-pandas
-scikit-learn
-joblib
+opencv-python-headless==4.11.0.86
+mediapipe==0.10.21
+numpy==2.2.6
+scikit-learn==1.7.0
+joblib==1.5.1
 Pillow
