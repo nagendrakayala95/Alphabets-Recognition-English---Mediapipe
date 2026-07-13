@@ -1,62 +1,87 @@
 import streamlit as st
+import av
 import cv2
+
+from streamlit_webrtc import (
+    webrtc_streamer,
+    VideoProcessorBase,
+    RTCConfiguration,
+)
 
 from preprocessing import preprocess_image
 from predict import predict_alphabet
 
-st.set_page_config(page_title="Alphabet Recognition")
-
-st.title("Alphabet Recognition")
-
-run = st.checkbox("Start Camera")
-
-frame_window = st.image([])
-
-from streamlit_webrtc import webrtc_streamer
-
-webrtc_streamer(
-    key="camera",
-    media_stream_constraints={"video": True, "audio": False},
+st.set_page_config(
+    page_title="Alphabet Recognition",
+    layout="centered"
 )
 
-while run:
+st.title("🖐 Alphabet Recognition")
+st.write("Show your hand sign inside the camera.")
 
-    success, frame = camera.read()
+RTC_CONFIGURATION = RTCConfiguration(
+    {
+        "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+    }
+)
 
-    if not success:
-        st.error("Cannot open camera")
-        break
 
-    frame = cv2.flip(frame, 1)
+class VideoProcessor(VideoProcessorBase):
 
-    h, w, _ = frame.shape
+    def recv(self, frame):
 
-    size = 250
+        img = frame.to_ndarray(format="bgr24")
 
-    x1 = w // 2 - size // 2
-    y1 = h // 2 - size // 2
+        img = cv2.flip(img, 1)
 
-    x2 = x1 + size
-    y2 = y1 + size
+        h, w, _ = img.shape
 
-    cv2.rectangle(frame, (x1, y1), (x2, y2), (0,255,0), 2)
+        size = 250
 
-    roi = frame[y1:y2, x1:x2]
+        x1 = w // 2 - size // 2
+        y1 = h // 2 - size // 2
 
-    processed = preprocess_image(roi)
+        x2 = x1 + size
+        y2 = y1 + size
 
-    prediction = predict_alphabet(processed)
+        cv2.rectangle(
+            img,
+            (x1, y1),
+            (x2, y2),
+            (0, 255, 0),
+            2,
+        )
 
-    cv2.putText(
-        frame,
-        f"Prediction : {prediction}",
-        (20,40),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        (0,255,0),
-        2
-    )
+        roi = img[y1:y2, x1:x2]
 
-    frame_window.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        try:
 
-camera.release()
+            processed = preprocess_image(roi)
+
+            prediction = predict_alphabet(processed)
+
+            cv2.putText(
+                img,
+                f"Prediction : {prediction}",
+                (20, 40),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 255, 0),
+                2,
+            )
+
+        except Exception:
+            pass
+
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+
+webrtc_streamer(
+    key="alphabet",
+    rtc_configuration=RTC_CONFIGURATION,
+    video_processor_factory=VideoProcessor,
+    media_stream_constraints={
+        "video": True,
+        "audio": False,
+    },
+)
