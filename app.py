@@ -12,7 +12,12 @@ run = st.checkbox("Start Camera")
 
 frame_window = st.image([])
 
-camera = cv2.VideoCapture(0)
+from streamlit_webrtc import webrtc_streamer
+
+webrtc_streamer(
+    key="camera",
+    media_stream_constraints={"video": True, "audio": False},
+)
 
 while run:
 
